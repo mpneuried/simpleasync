@@ -1,0 +1,15 @@
+{
+  "author": "mpneuried",
+  "name": "SimpleAsync",
+  "version": "0.0.1",
+  "repository": {
+    "url": ""
+  },
+  "engines": {
+    "node": "v0.4.11"
+  },
+  "dependencies": {
+    "underscore"
+  },
+  "devDependencies": {}
+}
