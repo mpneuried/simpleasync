@@ -42,7 +42,10 @@ else
 			for eReceiver, i in @_events[ event ]
 				eReceiver.apply( this, Array.prototype.slice.call( arguments, 1 ) )
 			return
-	
+
+class SimpleAsyncRow extends EventEmitter
+	constructor: ( @tasks, async, options )->
+
 
 class SimpleAsync extends EventEmitter
 	constructor: ( processing = {}, options = {} )->
@@ -52,16 +55,31 @@ class SimpleAsync extends EventEmitter
 		options.timeout or= 0
 
 		if not _.isEmpty( processing )
-			@processing = _.clone( processing )
+			processing = _.clone( processing )
 
 			@initProcessing()
 
 	initProcessing: =>
-
+		
+		for key, tasks of @processing when task isnt null
+			@processing[ key ] = new SimpleAsyncRow( tasks, @, options )
 		@
 
 	run: ( callback = -> )=>
-				
+		processingid = Math.floor( Math.random() * 1000000000 )
+		result = {}
+		for key, task of @processing when task isnt null
+			# no preconditions so run the task 
+			console.log "PROCESS", task
+			if _.isFunction( task )
+				fnCb = _.bind( ( err, res, key, processingid )->
+					console.log "int CB", arguments
+					return
+				, @, key, processingid )
+
+				task.call( @, callback: fnCb, result: result )
+
+		setTimeout( 3000, _.bind( callback, @, null , result ) )
 
 oExport = SimpleAsync
 
@@ -73,30 +91,3 @@ if typeof module isnt 'undefined' and module.exports
 	module.exports = oExport
 else
 	root.SimpleAsync = oExport
-
-
-
-# ## Testscripts
-
-# Testfunction
-fnTest = ( a, b, async )->
-	# printout the last results
-	console.log async.results
-	res = a + b
-
-	# define random time and the callback
-	time = Math.floor( Math.random() * 5000 )
-	fn = _.bind( async.callback, @, null, res )
-
-	# run timeout
-	setTimeout( time, fn )
-	return
-
-# test processing
-test = 
-	a: _.bind( fnTest, @, 1, 2 )
-	b: _.bind( fnTest, @, 1, 2 )
-
-sa = new SimpleAsync( test )
-sa.run ( err, res )->
-	console.log "RES", arguments 

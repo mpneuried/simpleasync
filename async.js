@@ -1,5 +1,5 @@
 (function() {
-  var EventEmitter, SimpleAsync, fnTest, isServer, oExport, root, sa, test, _;
+  var EventEmitter, SimpleAsync, SimpleAsyncRow, isServer, oExport, root, _;
   var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __indexOf = Array.prototype.indexOf || function(item) {
     for (var i = 0, l = this.length; i < l; i++) {
       if (this[i] === item) return i;
@@ -53,6 +53,13 @@
       return EventEmitter;
     })();
   }
+  SimpleAsyncRow = (function() {
+    __extends(SimpleAsyncRow, EventEmitter);
+    function SimpleAsyncRow(tasks, async, options) {
+      this.tasks = tasks;
+    }
+    return SimpleAsyncRow;
+  })();
   SimpleAsync = (function() {
     __extends(SimpleAsync, EventEmitter);
     function SimpleAsync(processing, options) {
@@ -66,17 +73,45 @@
       this.initProcessing = __bind(this.initProcessing, this);
       options.timeout || (options.timeout = 0);
       if (!_.isEmpty(processing)) {
-        this.processing = _.clone(processing);
+        processing = _.clone(processing);
         this.initProcessing();
       }
     }
     SimpleAsync.prototype.initProcessing = function() {
+      var key, tasks, _ref;
+      _ref = this.processing;
+      for (key in _ref) {
+        tasks = _ref[key];
+        if (task !== null) {
+          this.processing[key] = new SimpleAsyncRow(tasks, this, options);
+        }
+      }
       return this;
     };
     SimpleAsync.prototype.run = function(callback) {
+      var fnCb, key, processingid, result, task, _ref;
       if (callback == null) {
         callback = function() {};
       }
+      processingid = Math.floor(Math.random() * 1000000000);
+      result = {};
+      _ref = this.processing;
+      for (key in _ref) {
+        task = _ref[key];
+        if (task !== null) {
+          console.log("PROCESS", task);
+          if (_.isFunction(task)) {
+            fnCb = _.bind(function(err, res, key, processingid) {
+              console.log("int CB", arguments);
+            }, this, key, processingid);
+            task.call(this, {
+              callback: fnCb,
+              result: result
+            });
+          }
+        }
+      }
+      return setTimeout(3000, _.bind(callback, this, null, result));
     };
     return SimpleAsync;
   })();
@@ -86,20 +121,4 @@
   } else {
     root.SimpleAsync = oExport;
   }
-  fnTest = function(a, b, async) {
-    var fn, res, time;
-    console.log(async.results);
-    res = a + b;
-    time = Math.floor(Math.random() * 5000);
-    fn = _.bind(async.callback, this, null, res);
-    setTimeout(time, fn);
-  };
-  test = {
-    a: _.bind(fnTest, this, 1, 2),
-    b: _.bind(fnTest, this, 1, 2)
-  };
-  sa = new SimpleAsync(test);
-  sa.run(function(err, res) {
-    return console.log("RES", arguments);
-  });
 }).call(this);
